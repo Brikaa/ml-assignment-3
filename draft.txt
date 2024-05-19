@@ -1,0 +1,17 @@
+This is some pseudocode to preprocess some image data before using training an SVM model, an FFNN with BP model and a CNN model. Can you write it in Python? If the pseudocode has mistakes, feel free to correct them and let me know about them. Feel free to use any libraries in Python. Feel free to optimize the pseudocode; for example, if you find that a for loop is not needed and can be replaced with a simple library function, do it.
+
+- dirs = ls ./dataset/, filter by type=dir
+- features = []
+- targets = []
+- for dir in dirs:
+  - if directory_exists(./dataset/preprocessed-{dir})
+    - continue
+  - mkdir ./dataset/preprocessed-{dir}
+  - for file in ls ./dataset/{dir}:
+    - image = open_as_image(file)
+    - preprocessed = normalize(grayscale(reshape(image, (64, 64))))
+    - save(preprocessed, ./dataset/preprocessed-{dir})
+    - features.append(preprocessed)
+    - targets.append(dir)
+
+- Without threading: 41s
