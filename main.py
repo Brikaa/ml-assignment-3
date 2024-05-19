@@ -62,15 +62,24 @@ label_encoder = LabelEncoder()
 targets = label_encoder.fit_transform(target_names)
 print(len(features))
 print(len(targets))
+print(label_encoder.classes_)
 
 features_train, features_test, targets_train, targets_test = train_test_split(
     features, targets, test_size=80
 )
 
+# TODO: remove
+features_train = features_train[:800]
+targets_train = targets_train[:800]
+features_test = features_test[:200]
+targets_test = targets_test[:200]
+
 print("Training SVM model")
 clf = svm.SVC()
 clf.fit(features_train, targets_train)
 
-
-print(f"F1 scores:\n{metrics.f1_score(targets_test, clf.predict(features_test), average=None)}")
-print(f"Confusion matrix:\n{metrics.confusion_matrix(targets_test, clf.predict(features_test))}")
+predicted = clf.predict(features_test)
+print(f"Accuracy: {metrics.accuracy_score(targets_test, predicted)}")
+print(f"F1 scores:\n{metrics.f1_score(targets_test, predicted, average=None)}")
+print(f"F1 'weighted' average score: {metrics.f1_score(targets_test, predicted, average="weighted")}")
+print(f"Confusion matrix:\n{metrics.confusion_matrix(targets_test, predicted)}")
