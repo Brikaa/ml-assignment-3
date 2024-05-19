@@ -56,6 +56,7 @@ for thread in threads:
     thread.join()
 
 features = np.array(features)
+features = np.array([image.flatten() for image in features])
 
 label_encoder = LabelEncoder()
 targets = label_encoder.fit_transform(target_names)
@@ -71,4 +72,5 @@ clf = svm.SVC()
 clf.fit(features_train, targets_train)
 
 
-print("F1 scores: " + metrics.f1_score(targets_test, clf.predict(features_test)))
+print(f"F1 scores:\n{metrics.f1_score(targets_test, clf.predict(features_test), average=None)}")
+print(f"Confusion matrix:\n{metrics.confusion_matrix(targets_test, clf.predict(features_test))}")
