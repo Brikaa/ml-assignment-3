@@ -71,10 +71,10 @@ features_train, features_test, targets_train, targets_test = train_test_split(
 )
 
 # TODO: remove
-features_train = features_train[:800]
-targets_train = targets_train[:800]
-features_test = features_test[:200]
-targets_test = targets_test[:200]
+features_train = features_train[:1600]
+targets_train = targets_train[:1600]
+features_test = features_test[:400]
+targets_test = targets_test[:400]
 
 print("Training SVM model")
 def train_svm():
@@ -89,28 +89,35 @@ def train_svm():
 
 train_svm()
 
-# print("Training a feed-forward neural network model with back propagation")
-# features_test, targets_test, features_validation, targets_validation = train_test_split(features_test, targets_test, test_size=0.5)
-# def train_mlp():
-#     iterations = 200
-#     clf = MLPClassifier(warm_start=True, max_iter=1)
-#     training_accuracies = []
-#     validation_accuracies = []
-#     for epoch in range(iterations):
-#         clf.fit(features_train, targets_train)
-#         training_predictions = clf.predict(features_train)
-#         validation_predictions = clf.predict(features_validation)
+print("Training a feed-forward neural network model with back propagation")
+features_test, features_validation, targets_test, targets_validation = train_test_split(features_test, targets_test, test_size=0.5)
+def train_mlp():
+    no_epochs = 100
+    clf = MLPClassifier()
+    training_accuracies = []
+    validation_accuracies = []
+    epochs = []
+    classes = np.unique(targets_train)
+    for epoch in range(no_epochs):
+        clf.partial_fit(features_train, targets_train, classes=classes)
+        training_predictions = clf.predict(features_train)
+        validation_predictions = clf.predict(features_validation)
+        training_accuracies.append(metrics.accuracy_score(targets_train, training_predictions))
+        validation_accuracies.append(metrics.accuracy_score(targets_validation, validation_predictions))
+        epochs.append(epoch + 1)
 
-#     x_axis = [i for i in range(len(clf.validation_scores_))]
-#     y_axis = [i * 100 for i in clf.validation_scores_]
-#     plt.subplot(1, 2, 1)
-#     plt.plot(x_axis, y_axis)
-#     plt.xlabel("Epoch")
-#     plt.ylabel("Accuracy (% of samples)")
-#     plt.subplot(1, 2, 2)
-#     plt.plot(x_axis, [100 - i for i in y_axis])
-#     plt.xlabel("Epoch")
-#     plt.ylabel("Error (% of samples)")
-#     plt.show()
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs, training_accuracies, label="training")
+    plt.plot(epochs, validation_accuracies, label="validation")
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy (% of samples)")
+    plt.legend()
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs, [100 - i for i in training_accuracies], label="training")
+    plt.plot(epochs, [100 - i for i in validation_accuracies], label="validation")
+    plt.xlabel("Epoch")
+    plt.ylabel("Error (% of samples)")
+    plt.legend()
+    plt.show()
 
-# train_mlp()
+train_mlp()
