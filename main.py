@@ -3,8 +3,10 @@ import numpy as np
 import cv2
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
+from sklearn.neural_network import MLPClassifier
 from sklearn import svm, metrics
 from threading import Thread
+import matplotlib.pyplot as plt
 import shutil
 
 dataset_dir = "./dataset/"
@@ -65,7 +67,7 @@ print(len(targets))
 print(label_encoder.classes_)
 
 features_train, features_test, targets_train, targets_test = train_test_split(
-    features, targets, test_size=0.8
+    features, targets, test_size=0.2
 )
 
 # TODO: remove
@@ -86,3 +88,29 @@ def train_svm():
     print(f"Confusion matrix:\n{metrics.confusion_matrix(targets_test, predicted)}")
 
 train_svm()
+
+# print("Training a feed-forward neural network model with back propagation")
+# features_test, targets_test, features_validation, targets_validation = train_test_split(features_test, targets_test, test_size=0.5)
+# def train_mlp():
+#     iterations = 200
+#     clf = MLPClassifier(warm_start=True, max_iter=1)
+#     training_accuracies = []
+#     validation_accuracies = []
+#     for epoch in range(iterations):
+#         clf.fit(features_train, targets_train)
+#         training_predictions = clf.predict(features_train)
+#         validation_predictions = clf.predict(features_validation)
+
+#     x_axis = [i for i in range(len(clf.validation_scores_))]
+#     y_axis = [i * 100 for i in clf.validation_scores_]
+#     plt.subplot(1, 2, 1)
+#     plt.plot(x_axis, y_axis)
+#     plt.xlabel("Epoch")
+#     plt.ylabel("Accuracy (% of samples)")
+#     plt.subplot(1, 2, 2)
+#     plt.plot(x_axis, [100 - i for i in y_axis])
+#     plt.xlabel("Epoch")
+#     plt.ylabel("Error (% of samples)")
+#     plt.show()
+
+# train_mlp()
