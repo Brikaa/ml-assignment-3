@@ -13,5 +13,3 @@ This is some pseudocode to preprocess some image data before using training an S
     - save(preprocessed, ./dataset/preprocessed-{dir})
     - features.append(preprocessed)
     - targets.append(dir)
-
-- Without threading: 41s
