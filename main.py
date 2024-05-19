@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from PIL import Image
+import cv2
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from threading import Thread
@@ -16,11 +16,17 @@ target_names = []
 def preprocess_dir(dir_path):
     for file_name in os.listdir(dir_path):
         file_path = os.path.join(dir_path, file_name)
-        image = Image.open(file_path)
-        image = image.convert("L").resize((64, 64))
-        image_array = np.asarray(image) / 255.0
-        features.append(image_array)
-        target_names.append(dir_name)
+        image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+        try:
+            image = cv2.resize(image, (64, 64))
+            image_normalized = cv2.normalize(
+                image, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX
+            )
+            features.append(image_normalized)
+            target_names.append(dir_name)
+
+        except:
+            print(file_path + " is bad")
 
 
 threads = []
