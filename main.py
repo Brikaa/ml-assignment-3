@@ -13,7 +13,7 @@ features = []
 target_names = []
 
 
-def preprocess_dir(dir_path):
+def preprocess_dir(dir_path, preprocessed_dir_path):
     for file_name in os.listdir(dir_path):
         file_path = os.path.join(dir_path, file_name)
         image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
@@ -21,6 +21,9 @@ def preprocess_dir(dir_path):
             image = cv2.resize(image, (64, 64))
             image_normalized = cv2.normalize(
                 image, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX
+            )
+            cv2.imwrite(
+                os.path.join(preprocessed_dir_path, file_name), image_normalized
             )
             features.append(image_normalized)
             target_names.append(dir_name)
@@ -34,7 +37,14 @@ threads = []
 print("Preprocessing")
 for dir_name in dirs:
     dir_path = os.path.join(dataset_dir, dir_name)
-    t = Thread(target=preprocess_dir, args=[dir_path])
+    preprocessed_dir_path = os.path.join(dataset_dir, dir_name + "-preprocessed")
+    if os.path.exists(preprocessed_dir_path):
+        continue
+    os.mkdir(preprocessed_dir_path)
+    t = Thread(
+        target=preprocess_dir,
+        args=[dir_path, preprocessed_dir_path],
+    )
     threads.append(t)
     t.start()
 
