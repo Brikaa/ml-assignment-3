@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn import svm, metrics
 from threading import Thread
 import matplotlib.pyplot as plt
-from keras import models, layers, optimizers, Input, losses
+import keras
 
 dataset_dir = "./dataset/"
 dirs = [
@@ -100,53 +100,61 @@ def train_mlp(model, no_epochs):
     )
     training_accuracies = history.history["accuracy"]
     validation_accuracies = history.history["val_accuracy"]
+    training_loss = history.history["loss"]
+    validation_loss = history.history["val_loss"]
     epochs = [i + 1 for i in range(no_epochs)]
     _, test_acc = model.evaluate(features_test, targets_test, verbose=2)
-    plt.subplot(1, 2, 1)
+    plt.subplot(2, 2, 1)
     plt.plot(epochs, training_accuracies, label="training")
     plt.plot(epochs, validation_accuracies, label="validation")
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy (% of samples)")
     plt.legend()
-    plt.subplot(1, 2, 2)
+    plt.subplot(2, 2, 2)
     plt.plot(epochs, [100 - i for i in training_accuracies], label="training")
     plt.plot(epochs, [100 - i for i in validation_accuracies], label="validation")
     plt.xlabel("Epoch")
     plt.ylabel("Error (% of samples)")
+    plt.legend()
+    plt.subplot(2, 2, 3)
+    plt.plot(epochs, training_loss, label="training")
+    plt.plot(epochs, validation_loss, label="validation")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
     plt.legend()
     plt.show()
     return test_acc
 
 
 def train_nn():
-    model1 = models.Sequential(
+    model1 = keras.models.Sequential(
         [
-            Input(shape=(len(features_train[0]),)),
-            layers.Dense(128, activation="relu"),
-            layers.Dense(64, activation="relu"),
-            layers.Dense(32, activation="relu"),
-            layers.Dense(len(np.unique(targets_train)), activation="softmax"),
+            keras.Input(shape=(len(features_train[0]),)),
+            keras.layers.Dense(128, activation="relu"),
+            keras.layers.Dense(64, activation="relu"),
+            keras.layers.Dense(32, activation="relu"),
+            keras.layers.Dense(len(np.unique(targets_train)), activation="softmax"),
         ]
     )
     model1.compile(
-        optimizer=optimizers.Adam(learning_rate=0.0001),
-        loss=losses.SparseCategoricalCrossentropy(),
+        optimizer=keras.optimizers.Adam(learning_rate=0.0001),
+        loss=keras.losses.SparseCategoricalCrossentropy(),
         metrics=["accuracy"],
     )
 
     test_acc1 = train_mlp(model1, 17)
 
-    model2 = models.Sequential(
+    model2 = keras.models.Sequential(
         [
-            Input(shape=(len(features_train[0]),)),
-            layers.Dense(128, activation="sigmoid"),
-            layers.Dense(128, activation="relu"),
-            layers.Dense(len(np.unique(targets_train)), activation="sigmoid"),
+            keras.Input(shape=(len(features_train[0]),)),
+            keras.layers.Dense(128, activation="sigmoid"),
+            keras.layers.Dense(128, activation="relu"),
+            keras.layers.Dense(len(np.unique(targets_train)), activation="sigmoid"),
         ]
     )
     model2.compile(
-        optimizer=optimizers.Adam(learning_rate=0.0001),
-        loss=losses.SparseCategoricalCrossentropy(),
+        optimizer=keras.optimizers.Adam(learning_rate=0.0001),
+        loss=keras.losses.SparseCategoricalCrossentropy(),
         metrics=["accuracy"],
     )
 
@@ -162,7 +170,7 @@ def train_nn():
     # To form a probability distribution at the last layer
 
     best_model.save("./model.keras")
-    loaded_model = models.load_model("./model.keras")
+    loaded_model = keras.models.load_model("./model.keras")
     predicted_arrs = loaded_model.predict(features_test)
     predicted = [np.argmax(p) for p in predicted_arrs]
     print(
