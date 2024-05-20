@@ -91,22 +91,7 @@ features_test, features_validation, targets_test, targets_validation = train_tes
 )
 
 
-def train_mlp():
-    model = models.Sequential(
-        [
-            Input(shape=(len(features_train[0]),)),
-            layers.Dense(128, activation="relu"),
-            layers.Dense(64, activation="relu"),
-            layers.Dense(32, activation="relu"),
-            layers.Dense(len(np.unique(targets_train))),
-        ]
-    )
-    no_epochs = 17
-    model.compile(
-        optimizer=optimizers.Adam(learning_rate=0.0001),
-        loss=losses.SparseCategoricalCrossentropy(from_logits=True),
-        metrics=["accuracy"],
-    )
+def train_mlp(model, no_epochs):
     history = model.fit(
         features_train,
         targets_train,
@@ -116,11 +101,7 @@ def train_mlp():
     training_accuracies = history.history["accuracy"]
     validation_accuracies = history.history["val_accuracy"]
     epochs = [i + 1 for i in range(no_epochs)]
-    probability_model = models.Sequential([model, layers.Softmax()])
-    predictions = probability_model.predict(np.array([features_test[0]]))
-    print(predictions[0])
-    print(np.argmax(predictions[0]))
-    print(targets_test[0])
+    _, test_acc = model.evaluate(features_test, targets_test, verbose=2)
     plt.subplot(1, 2, 1)
     plt.plot(epochs, training_accuracies, label="training")
     plt.plot(epochs, validation_accuracies, label="validation")
@@ -134,6 +115,65 @@ def train_mlp():
     plt.ylabel("Error (% of samples)")
     plt.legend()
     plt.show()
+    return test_acc
 
 
-train_mlp()
+def train_nn():
+    model1 = models.Sequential(
+        [
+            Input(shape=(len(features_train[0]),)),
+            layers.Dense(128, activation="relu"),
+            layers.Dense(64, activation="relu"),
+            layers.Dense(32, activation="relu"),
+            layers.Dense(len(np.unique(targets_train)), activation="softmax"),
+        ]
+    )
+    model1.compile(
+        optimizer=optimizers.Adam(learning_rate=0.0001),
+        loss=losses.SparseCategoricalCrossentropy(),
+        metrics=["accuracy"],
+    )
+
+    test_acc1 = train_mlp(model1, 17)
+
+    model2 = models.Sequential(
+        [
+            Input(shape=(len(features_train[0]),)),
+            layers.Dense(128, activation="sigmoid"),
+            layers.Dense(128, activation="relu"),
+            layers.Dense(len(np.unique(targets_train)), activation="softmax"),
+        ]
+    )
+    model2.compile(
+        optimizer=optimizers.Adam(learning_rate=0.0001),
+        loss=losses.SparseCategoricalCrossentropy(),
+        metrics=["accuracy"],
+    )
+
+    test_acc2 = train_mlp(model2, 20)
+
+    best_model = model1
+    if test_acc1 > test_acc2:
+        print("Saving model1")
+    else:
+        print("Saving model2")
+        best_model = model2
+
+    # To form a probability distribution at the last layer
+
+    best_model.save("./model.keras")
+    loaded_model = models.load_model("./model.keras")
+    predicted_arrs = loaded_model.predict(features_test)
+    predicted = [np.argmax(p) for p in predicted_arrs]
+    print(
+        f"Accuracy on test dataset: {metrics.accuracy_score(targets_test, predicted)}"
+    )
+    print(f"F1 scores:\n{metrics.f1_score(targets_test, predicted, average=None)}")
+    print(
+        "F1 'weighted' average score: "
+        + str(metrics.f1_score(targets_test, predicted, average="weighted"))
+    )
+    print(f"Confusion matrix:\n{metrics.confusion_matrix(targets_test, predicted)}")
+
+
+train_nn()
