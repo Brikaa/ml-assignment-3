@@ -3,11 +3,10 @@ import numpy as np
 import cv2
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
-from sklearn.neural_network import MLPClassifier
 from sklearn import svm, metrics
 from threading import Thread
 import matplotlib.pyplot as plt
-import shutil
+from keras import models, layers, optimizers, Input, losses
 
 dataset_dir = "./dataset/"
 dirs = [
@@ -17,16 +16,13 @@ features = []
 target_names = []
 
 
-def preprocess_dir(dir_name, dir_path, preprocessed_dir_path):
+def preprocess_dir(dir_name, dir_path):
     for file_name in os.listdir(dir_path):
         file_path = os.path.join(dir_path, file_name)
         image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
         try:
             image = cv2.resize(image, (64, 64))
             image_normalized = image / 255.0
-            cv2.imwrite(
-                os.path.join(preprocessed_dir_path, file_name), image_normalized
-            )
             features.append(image_normalized)
             target_names.append(dir_name)
 
@@ -41,13 +37,9 @@ for dir_name in dirs:
     dir_path = os.path.join(dataset_dir, dir_name)
     if dir_path.endswith("-preprocessed"):
         continue
-    preprocessed_dir_path = os.path.join(dataset_dir, dir_name + "-preprocessed")
-    if os.path.exists(preprocessed_dir_path):
-        shutil.rmtree(preprocessed_dir_path)
-    os.mkdir(preprocessed_dir_path)
     t = Thread(
         target=preprocess_dir,
-        args=[dir_name, dir_path, preprocessed_dir_path],
+        args=[dir_name, dir_path],
     )
     threads.append(t)
     t.start()
@@ -69,12 +61,14 @@ features_train, features_test, targets_train, targets_test = train_test_split(
 )
 
 # TODO: remove
-features_train = features_train[:800]
-targets_train = targets_train[:800]
-features_test = features_test[:200]
-targets_test = targets_test[:200]
+# features_train = features_train[:19200]
+# targets_train = targets_train[:19200]
+# features_test = features_test[:4800]
+# targets_test = targets_test[:4800]
 
 print("Training SVM model")
+
+
 def train_svm():
     clf = svm.SVC()
     clf.fit(features_train, targets_train)
@@ -82,7 +76,64 @@ def train_svm():
     predicted = clf.predict(features_test)
     print(f"Accuracy: {metrics.accuracy_score(targets_test, predicted)}")
     print(f"F1 scores:\n{metrics.f1_score(targets_test, predicted, average=None)}")
-    print(f"F1 'weighted' average score: {metrics.f1_score(targets_test, predicted, average="weighted")}")
+    print(
+        "F1 'weighted' average score: "
+        + str(metrics.f1_score(targets_test, predicted, average="weighted"))
+    )
     print(f"Confusion matrix:\n{metrics.confusion_matrix(targets_test, predicted)}")
 
-train_svm()
+
+# train_svm()
+
+print("Training a feed-forward neural network model with back propagation")
+features_test, features_validation, targets_test, targets_validation = train_test_split(
+    features_test, targets_test, test_size=0.5
+)
+
+
+def train_mlp():
+    model = models.Sequential(
+        [
+            Input(shape=(len(features_train[0]),)),
+            layers.Dense(128, activation="relu"),
+            layers.Dense(64, activation="relu"),
+            layers.Dense(32, activation="relu"),
+            layers.Dense(len(np.unique(targets_train))),
+        ]
+    )
+    no_epochs = 17
+    model.compile(
+        optimizer=optimizers.Adam(learning_rate=0.0001),
+        loss=losses.SparseCategoricalCrossentropy(from_logits=True),
+        metrics=["accuracy"],
+    )
+    history = model.fit(
+        features_train,
+        targets_train,
+        validation_data=(features_validation, targets_validation),
+        epochs=no_epochs,
+    )
+    training_accuracies = history.history["accuracy"]
+    validation_accuracies = history.history["val_accuracy"]
+    epochs = [i + 1 for i in range(no_epochs)]
+    probability_model = models.Sequential([model, layers.Softmax()])
+    predictions = probability_model.predict(np.array([features_test[0]]))
+    print(predictions[0])
+    print(np.argmax(predictions[0]))
+    print(targets_test[0])
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs, training_accuracies, label="training")
+    plt.plot(epochs, validation_accuracies, label="validation")
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy (% of samples)")
+    plt.legend()
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs, [100 - i for i in training_accuracies], label="training")
+    plt.plot(epochs, [100 - i for i in validation_accuracies], label="validation")
+    plt.xlabel("Epoch")
+    plt.ylabel("Error (% of samples)")
+    plt.legend()
+    plt.show()
+
+
+train_mlp()
