@@ -12,7 +12,7 @@ dataset_dir = "./dataset/"
 dirs = [
     d for d in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, d))
 ]
-gs_images = []
+grayscale_images = []
 rgb_images = []
 target_names = []
 file_names = []
@@ -31,7 +31,7 @@ def preprocess_dir(dir_name, dir_path):
             grayscale_image_normalized = grayscale_image_resized / 255.0
             rgb_image_normalized = rgb_image_resized / 255.0
             with lock:
-                gs_images.append(grayscale_image_normalized)
+                grayscale_images.append(grayscale_image_normalized)
                 rgb_images.append(rgb_image_normalized)
                 target_names.append(dir_name)
                 file_names.append(file_name)
@@ -63,7 +63,7 @@ for i in range(25):
     plt.xticks([])
     plt.yticks([])
     plt.grid(False)
-    plt.imshow(gs_images[i], cmap=plt.cm.binary)
+    plt.imshow(grayscale_images[i], cmap=plt.cm.binary)
     plt.xlabel(f"{file_names[i]}/{target_names[i]}")
 
 plt.figure(figsize=(10, 10))
@@ -75,7 +75,7 @@ for i in range(25):
     plt.imshow(rgb_images[i], cmap=plt.cm.binary)
     plt.xlabel(f"{file_names[i]}/{target_names[i]}")
 
-gs_features = np.array(gs_images)
+gs_features = np.array(grayscale_images)
 gs_features = np.array([image.flatten() for image in gs_features])
 rgb_features = np.array(rgb_images)
 rgb_features = np.array([image.flatten() for image in rgb_features])
@@ -244,8 +244,6 @@ _, __, nn_f1, ___ = train_nn()
 def train_cnn():
     # https://www.tensorflow.org/tutorials/images/cnn
     # Common procedures and variables you might be interested in:
-    # rgb_images
-    # gs_images
     # gs_features for grayscale features
     # rgb_features for rgb_features
     # plot_accuracy_and_error() for making a plot on the accuracy and error of the fitted model (check the train_mlp function)
