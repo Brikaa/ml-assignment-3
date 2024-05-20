@@ -56,8 +56,13 @@ print(len(features))
 print(len(targets))
 print(label_encoder.classes_)
 
+# 80-10-10 split
+# We set aside the validation data from the beginning to avoid decreasing the test size between different models
 features_train, features_test, targets_train, targets_test = train_test_split(
     features, targets, test_size=0.2
+)
+features_test, features_validation, targets_test, targets_validation = train_test_split(
+    features_test, targets_test, test_size=0.5
 )
 
 # TODO: remove
@@ -92,9 +97,6 @@ def train_svm():
 _, __, svm_f1, ___ = train_svm()
 
 print("Training a feed-forward neural network model with back propagation")
-features_test, features_validation, targets_test, targets_validation = train_test_split(
-    features_test, targets_test, test_size=0.5
-)
 
 
 def train_mlp(model, no_epochs):

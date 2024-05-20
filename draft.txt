@@ -2,4 +2,6 @@
 - How does it train the model without a softmax layer, how does it calculate the loss?
   - from_logits=True transforms it into a probability distribution
 - Problem: test dataset gets smaller for neural network which might be unfair
-- How to determine "best model"?
+  - Split train/test/validation from beginning
+- How to determine "best" NN model?
+  - Accuracy?
