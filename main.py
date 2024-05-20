@@ -61,12 +61,24 @@ features_train, features_test, targets_train, targets_test = train_test_split(
 )
 
 # TODO: remove
-# features_train = features_train[:19200]
-# targets_train = targets_train[:19200]
-# features_test = features_test[:4800]
-# targets_test = targets_test[:4800]
+# features_train = features_train[:800]
+# targets_train = targets_train[:800]
+# features_test = features_test[:200]
+# targets_test = targets_test[:200]
 
 print("Training SVM model")
+
+
+def get_and_print_metrics(predictions):
+    accuracy = metrics.accuracy_score(targets_test, predictions)
+    f1_all = metrics.f1_score(targets_test, predictions, average=None)
+    f1_average = metrics.f1_score(targets_test, predictions, average="weighted")
+    confusion_matrix = metrics.confusion_matrix(targets_test, predictions)
+    print(f"Accuracy: {accuracy}")
+    print(f"F1 scores:\n{f1_all}")
+    print(f"F1 weighted average score: {f1_average}")
+    print(f"Confusion matrix:\n{confusion_matrix}")
+    return accuracy, f1_all, f1_average, confusion_matrix
 
 
 def train_svm():
@@ -74,16 +86,10 @@ def train_svm():
     clf.fit(features_train, targets_train)
 
     predicted = clf.predict(features_test)
-    print(f"Accuracy: {metrics.accuracy_score(targets_test, predicted)}")
-    print(f"F1 scores:\n{metrics.f1_score(targets_test, predicted, average=None)}")
-    print(
-        "F1 'weighted' average score: "
-        + str(metrics.f1_score(targets_test, predicted, average="weighted"))
-    )
-    print(f"Confusion matrix:\n{metrics.confusion_matrix(targets_test, predicted)}")
+    return get_and_print_metrics(predicted)
 
 
-# train_svm()
+_, __, svm_f1, ___ = train_svm()
 
 print("Training a feed-forward neural network model with back propagation")
 features_test, features_validation, targets_test, targets_validation = train_test_split(
@@ -162,9 +168,9 @@ def train_nn():
 
     best_model = model1
     if test_acc1 > test_acc2:
-        print("Saving model1")
+        print("Saving model 1 since it is the best based on test accuracy")
     else:
-        print("Saving model2")
+        print("Saving model 2 since it is the best based on test accuracy")
         best_model = model2
 
     # To form a probability distribution at the last layer
@@ -173,15 +179,11 @@ def train_nn():
     loaded_model = keras.models.load_model("./model.keras")
     predicted_arrs = loaded_model.predict(features_test)
     predicted = [np.argmax(p) for p in predicted_arrs]
-    print(
-        f"Accuracy on test dataset: {metrics.accuracy_score(targets_test, predicted)}"
-    )
-    print(f"F1 scores:\n{metrics.f1_score(targets_test, predicted, average=None)}")
-    print(
-        "F1 'weighted' average score: "
-        + str(metrics.f1_score(targets_test, predicted, average="weighted"))
-    )
-    print(f"Confusion matrix:\n{metrics.confusion_matrix(targets_test, predicted)}")
+    return get_and_print_metrics(predicted)
 
 
-train_nn()
+_, __, nn_f1, ___ = train_nn()
+
+print(
+    f'{["SVM", "NN"][np.argmax([svm_f1, nn_f1])]} is the best model based on weighted average f1 score'
+)
