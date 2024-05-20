@@ -5,9 +5,9 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn import svm, metrics
 from threading import Thread, Lock
-from tensorflow.keras import layers
 import matplotlib.pyplot as plt
 import keras
+
 dataset_dir = "./dataset/"
 dirs = [
     d for d in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, d))
@@ -99,6 +99,9 @@ print(label_encoder.classes_)
     targets_train,
     targets_test,
 ) = train_test_split(rgb_features, gs_features, targets, test_size=0.2, random_state=12)
+del rgb_features
+del gs_features
+del targets
 
 gs_features_test, gs_features_validation = (
     gs_features_test[: len(gs_features_test) // 2],
@@ -197,7 +200,7 @@ def train_mlp(model, no_epochs):
     return test_acc
 
 
-def train_convloutional_mlp_rgb(model, no_epochs):
+def train_convolutional_mlp_rgb(model, no_epochs):
     history = model.fit(
         rgb_features_train,
         targets_train,
@@ -213,7 +216,6 @@ def train_convloutional_mlp_rgb(model, no_epochs):
     )
     _, test_acc = model.evaluate(rgb_features_test, targets_test, verbose=2)
     return test_acc
-
 
 
 def train_nn():
@@ -257,8 +259,6 @@ def train_nn():
         print("Saving model 2 since it is the best based on test accuracy")
         best_model = model2
 
-    # To form a probability distribution at the last layer
-
     best_model.save("./model.keras")
     loaded_model = keras.models.load_model("./model.keras")
     predicted_arrs = loaded_model.predict(gs_features_test)
@@ -284,59 +284,63 @@ def train_cnn():
     gs_features_validation = gs_features_validation.reshape(
         (len(gs_features_validation), 64, 64)
     )
-    
+
     model1 = keras.models.Sequential()
-    model1.add(keras.Input(shape=(64,64,1)))
-    model1.add(layers.Conv2D(32, 3, strides=(1,1), padding="valid", activation='relu'))
-    model1.add(layers.MaxPool2D((2,2)))
-    model1.add(layers.Conv2D(32, 3, activation='relu'))
-    model1.add(layers.MaxPool2D((2,2)))
-    model1.add(layers.Flatten())
-    model1.add(layers.Dense(64, activation='relu'))
-    model1.add(layers.Dense(len(np.unique(targets_train)), activation="softmax"))
-    
+    model1.add(keras.Input(shape=(64, 64, 1)))
+    model1.add(
+        keras.layers.Conv2D(8, 8, strides=(1, 1), padding="valid", activation="relu")
+    )
+    model1.add(keras.layers.MaxPool2D((2, 2)))
+    model1.add(keras.layers.Conv2D(8, 8, activation="relu"))
+    model1.add(keras.layers.MaxPool2D((2, 2)))
+    model1.add(keras.layers.Flatten())
+    model1.add(keras.layers.Dense(64, activation="relu"))
+    model1.add(keras.layers.Dense(len(np.unique(targets_train)), activation="softmax"))
+
     model1.compile(
         optimizer=keras.optimizers.Adam(learning_rate=0.0001),
         loss=keras.losses.SparseCategoricalCrossentropy(),
         metrics=["accuracy"],
     )
-    
+
     test_acc1 = train_mlp(model1, 20)
-    
+
     model2 = keras.models.Sequential()
-    model2.add(keras.Input(shape=(64,64,3)))
-    model2.add(layers.Conv2D(64, 3, strides=(1,1), padding="valid", activation='relu'))
-    model2.add(layers.MaxPool2D((2,2)))
-    model2.add(layers.Conv2D(64, 3, activation='relu'))
-    model2.add(layers.MaxPool2D((2,2)))
-    model2.add(layers.Flatten())
-    model2.add(layers.Dense(64, activation='relu'))
-    model2.add(layers.Dense(len(np.unique(targets_train)), activation="softmax"))
-    
+    model2.add(keras.Input(shape=(64, 64, 3)))
+    model2.add(
+        keras.layers.Conv2D(8, 8, strides=(1, 1), padding="valid", activation="relu")
+    )
+    model2.add(keras.layers.MaxPool2D((2, 2)))
+    model2.add(keras.layers.Conv2D(8, 8, activation="relu"))
+    model2.add(keras.layers.MaxPool2D((2, 2)))
+    model2.add(keras.layers.Flatten())
+    model2.add(keras.layers.Dense(64, activation="relu"))
+    model2.add(keras.layers.Dense(len(np.unique(targets_train)), activation="softmax"))
+
     model2.compile(
         optimizer=keras.optimizers.Adam(learning_rate=0.0001),
         loss=keras.losses.SparseCategoricalCrossentropy(),
         metrics=["accuracy"],
     )
-    
-    test_acc2 = train_convloutional_mlp_rgb(model2, 20)
-    
+
+    test_acc2 = train_convolutional_mlp_rgb(model2, 20)
+
     best_model = model1
     best_model_is_rgb = False
     if test_acc1 > test_acc2:
-        print("Saving model 1 since it is the best based on test accuracy")
+        print("Saving grayscale CNN model since it is the best based on test accuracy")
     else:
-        print("Saving model 2 since it is the best based on test accuracy")
+        print("Saving RGB CNN model since it is the best based on test accuracy")
         best_model_is_rgb = True
         best_model = model2
-    
+
     best_model.save("./cnn-model.keras")
     loaded_model = keras.models.load_model("./cnn-model.keras")
     if best_model_is_rgb:
         predicted_arrs = loaded_model.predict(rgb_features_test)
     else:
         predicted_arrs = loaded_model.predict(gs_features_test)
-        
+
     predicted = [np.argmax(p) for p in predicted_arrs]
     return get_and_print_metrics(predicted)
 
