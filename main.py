@@ -141,7 +141,7 @@ def train_nn():
             Input(shape=(len(features_train[0]),)),
             layers.Dense(128, activation="sigmoid"),
             layers.Dense(128, activation="relu"),
-            layers.Dense(len(np.unique(targets_train)), activation="softmax"),
+            layers.Dense(len(np.unique(targets_train)), activation="sigmoid"),
         ]
     )
     model2.compile(
