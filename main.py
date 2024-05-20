@@ -12,21 +12,29 @@ dataset_dir = "./dataset/"
 dirs = [
     d for d in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, d))
 ]
-features = []
+grayscale_images = []
+rgb_images = []
 target_names = []
+file_names = []
 
 lock = Lock()
+
 
 def preprocess_dir(dir_name, dir_path):
     for file_name in os.listdir(dir_path):
         file_path = os.path.join(dir_path, file_name)
-        image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+        rgb_image = cv2.imread(file_path)
         try:
-            image = cv2.resize(image, (64, 64))
-            image_normalized = image / 255.0
+            grayscale_image = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2GRAY)
+            grayscale_image_resized = cv2.resize(grayscale_image, (64, 64))
+            rgb_image_resized = cv2.resize(rgb_image, (64, 64))
+            grayscale_image_normalized = grayscale_image_resized / 255.0
+            rgb_image_normalized = rgb_image_resized / 255.0
             with lock:
-                features.append(image_normalized)
+                grayscale_images.append(grayscale_image_normalized)
+                rgb_images.append(rgb_image_normalized)
                 target_names.append(dir_name)
+                file_names.append(file_name)
 
         except:
             print(file_path + " is bad")
@@ -55,33 +63,54 @@ for i in range(25):
     plt.xticks([])
     plt.yticks([])
     plt.grid(False)
-    plt.imshow(features[i], cmap=plt.cm.binary)
-    plt.xlabel(target_names[i])
-plt.show()
+    plt.imshow(grayscale_images[i], cmap=plt.cm.binary)
+    plt.xlabel(f"{file_names[i]}/{target_names[i]}")
 
+plt.figure(figsize=(10, 10))
+for i in range(25):
+    plt.subplot(5, 5, i + 1)
+    plt.xticks([])
+    plt.yticks([])
+    plt.grid(False)
+    plt.imshow(rgb_images[i], cmap=plt.cm.binary)
+    plt.xlabel(f"{file_names[i]}/{target_names[i]}")
 
-features = np.array(features)
-features = np.array([image.flatten() for image in features])
+gs_features = np.array(grayscale_images)
+gs_features = np.array([image.flatten() for image in gs_features])
+rgb_features = np.array(rgb_images)
+rgb_features = np.array([image.flatten() for image in rgb_features])
 
 label_encoder = LabelEncoder()
 targets = label_encoder.fit_transform(target_names)
-print(len(features))
+print(len(gs_features))
+print(len(rgb_features))
 print(len(targets))
 print(label_encoder.classes_)
 
 # 80-10-10 split
 # We set aside the validation data from the beginning to avoid decreasing the test size between different models
-features_train, features_test, targets_train, targets_test = train_test_split(
-    features, targets, test_size=0.2
-)
-features_test, features_validation, targets_test, targets_validation = train_test_split(
-    features_test, targets_test, test_size=0.5
-)
+(
+    rgb_features_train,
+    rgb_features_test,
+    gs_features_train,
+    gs_features_test,
+    targets_train,
+    targets_test,
+) = train_test_split(rgb_features, gs_features, targets, test_size=0.2)
+
+(
+    rgb_features_test,
+    rgb_features_validation,
+    gs_features_test,
+    gs_features_validation,
+    targets_test,
+    targets_validation,
+) = train_test_split(rgb_features_test, gs_features_test, targets_test, test_size=0.5)
 
 # TODO: remove
-features_train = features_train[:800]
+gs_features_train = gs_features_train[:800]
 targets_train = targets_train[:800]
-features_test = features_test[:200]
+gs_features_test = gs_features_test[:200]
 targets_test = targets_test[:200]
 
 print("Training SVM model")
@@ -101,9 +130,9 @@ def get_and_print_metrics(predictions):
 
 def train_svm():
     clf = svm.SVC()
-    clf.fit(features_train, targets_train)
+    clf.fit(gs_features_train, targets_train)
 
-    predicted = clf.predict(features_test)
+    predicted = clf.predict(gs_features_test)
     return get_and_print_metrics(predicted)
 
 
@@ -114,9 +143,9 @@ print("Training a feed-forward neural network model with back propagation")
 
 def train_mlp(model, no_epochs):
     history = model.fit(
-        features_train,
+        gs_features_train,
         targets_train,
-        validation_data=(features_validation, targets_validation),
+        validation_data=(gs_features_validation, targets_validation),
         epochs=no_epochs,
     )
     training_accuracies = history.history["accuracy"]
@@ -124,7 +153,8 @@ def train_mlp(model, no_epochs):
     training_loss = history.history["loss"]
     validation_loss = history.history["val_loss"]
     epochs = [i + 1 for i in range(no_epochs)]
-    _, test_acc = model.evaluate(features_test, targets_test, verbose=2)
+    _, test_acc = model.evaluate(gs_features_test, targets_test, verbose=2)
+    plt.figure(figsize=(10, 10))
     plt.subplot(2, 2, 1)
     plt.plot(epochs, training_accuracies, label="training")
     plt.plot(epochs, validation_accuracies, label="validation")
@@ -143,14 +173,13 @@ def train_mlp(model, no_epochs):
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend()
-    plt.show()
     return test_acc
 
 
 def train_nn():
     model1 = keras.models.Sequential(
         [
-            keras.Input(shape=(len(features_train[0]),)),
+            keras.Input(shape=(len(gs_features_train[0]),)),
             keras.layers.Dense(128, activation="relu"),
             keras.layers.Dense(64, activation="relu"),
             keras.layers.Dense(32, activation="relu"),
@@ -167,7 +196,7 @@ def train_nn():
 
     model2 = keras.models.Sequential(
         [
-            keras.Input(shape=(len(features_train[0]),)),
+            keras.Input(shape=(len(gs_features_train[0]),)),
             keras.layers.Dense(128, activation="sigmoid"),
             keras.layers.Dense(128, activation="relu"),
             keras.layers.Dense(len(np.unique(targets_train)), activation="sigmoid"),
@@ -192,7 +221,7 @@ def train_nn():
 
     best_model.save("./model.keras")
     loaded_model = keras.models.load_model("./model.keras")
-    predicted_arrs = loaded_model.predict(features_test)
+    predicted_arrs = loaded_model.predict(gs_features_test)
     predicted = [np.argmax(p) for p in predicted_arrs]
     return get_and_print_metrics(predicted)
 
@@ -202,3 +231,5 @@ _, __, nn_f1, ___ = train_nn()
 print(
     f'{["SVM", "NN"][np.argmax([svm_f1, nn_f1])]} is the best model based on weighted average f1 score'
 )
+
+plt.show()
