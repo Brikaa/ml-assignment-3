@@ -141,29 +141,24 @@ _, __, svm_f1, ___ = train_svm()
 print("Training a feed-forward neural network model with back propagation")
 
 
-def train_mlp(model, no_epochs):
-    history = model.fit(
-        gs_features_train,
-        targets_train,
-        validation_data=(gs_features_validation, targets_validation),
-        epochs=no_epochs,
-    )
-    training_accuracies = history.history["accuracy"]
-    validation_accuracies = history.history["val_accuracy"]
-    training_loss = history.history["loss"]
-    validation_loss = history.history["val_loss"]
+def plot_accuracy_and_error(
+    no_epochs,
+    training_accuracies,
+    training_loss,
+    validation_accuracies,
+    validation_loss,
+):
     epochs = [i + 1 for i in range(no_epochs)]
-    _, test_acc = model.evaluate(gs_features_test, targets_test, verbose=2)
     plt.figure(figsize=(10, 10))
     plt.subplot(2, 2, 1)
-    plt.plot(epochs, training_accuracies, label="training")
-    plt.plot(epochs, validation_accuracies, label="validation")
+    plt.plot(epochs, [i * 100 for i in training_accuracies], label="training")
+    plt.plot(epochs, [i * 100 for i in validation_accuracies], label="validation")
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy (% of samples)")
     plt.legend()
     plt.subplot(2, 2, 2)
-    plt.plot(epochs, [100 - i for i in training_accuracies], label="training")
-    plt.plot(epochs, [100 - i for i in validation_accuracies], label="validation")
+    plt.plot(epochs, [100 - i * 100 for i in training_accuracies], label="training")
+    plt.plot(epochs, [100 - i * 100 for i in validation_accuracies], label="validation")
     plt.xlabel("Epoch")
     plt.ylabel("Error (% of samples)")
     plt.legend()
@@ -173,6 +168,23 @@ def train_mlp(model, no_epochs):
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend()
+
+
+def train_mlp(model, no_epochs):
+    history = model.fit(
+        gs_features_train,
+        targets_train,
+        validation_data=(gs_features_validation, targets_validation),
+        epochs=no_epochs,
+    )
+    plot_accuracy_and_error(
+        no_epochs,
+        history.history["accuracy"],
+        history.history["loss"],
+        history.history["val_accuracy"],
+        history.history["val_loss"],
+    )
+    _, test_acc = model.evaluate(gs_features_test, targets_test, verbose=2)
     return test_acc
 
 
@@ -228,8 +240,23 @@ def train_nn():
 
 _, __, nn_f1, ___ = train_nn()
 
+
+def train_cnn():
+    # https://www.tensorflow.org/tutorials/images/cnn
+    # Common procedures and variables you might be interested in:
+    # gs_features for grayscale features
+    # rgb_features for rgb_features
+    # plot_accuracy_and_error() for making a plot on the accuracy and error of the fitted model (check the train_mlp function)
+    # save the best cnn model as "cnn-model.keras" since this file is gitignored
+    # TODO: change, provide this function with the predicted values from the best model
+    # Check train_nn functions for an example of how to determine the best model and how to save the model
+    return get_and_print_metrics(targets_test)
+
+
+_, __, cnn_f1, ___ = train_cnn()
+
 print(
-    f'{["SVM", "NN"][np.argmax([svm_f1, nn_f1])]} is the best model based on weighted average f1 score'
+    f'{["SVM", "NN", "CNN"][np.argmax([svm_f1, nn_f1, cnn_f1])]} is the best model based on weighted average f1 score'
 )
 
 plt.show()

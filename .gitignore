@@ -2,3 +2,4 @@ venv/
 dataset/*
 !dataset/.gitkeep
 model.keras
+cnn-model.keras
