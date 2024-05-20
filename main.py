@@ -23,9 +23,7 @@ def preprocess_dir(dir_name, dir_path, preprocessed_dir_path):
         image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
         try:
             image = cv2.resize(image, (64, 64))
-            image_normalized = cv2.normalize(
-                image, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX
-            )
+            image_normalized = image / 255.0
             cv2.imwrite(
                 os.path.join(preprocessed_dir_path, file_name), image_normalized
             )
