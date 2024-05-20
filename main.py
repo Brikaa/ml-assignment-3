@@ -75,10 +75,11 @@ for i in range(25):
     plt.imshow(rgb_images[i], cmap=plt.cm.binary)
     plt.xlabel(f"{file_names[i]}/{target_names[i]}")
 
-gs_features = np.array(grayscale_images)
-gs_features = np.array([image.flatten() for image in gs_features])
-rgb_features = np.array(rgb_images)
-rgb_features = np.array([image.flatten() for image in rgb_features])
+gs_features = np.array(grayscale_images, dtype=np.float16)
+gs_features = np.array([image.flatten() for image in gs_features], dtype=np.float16)
+rgb_features = np.array(rgb_images, dtype=np.float16)
+del grayscale_images
+del rgb_images
 
 label_encoder = LabelEncoder()
 targets = label_encoder.fit_transform(target_names)
@@ -98,19 +99,25 @@ print(label_encoder.classes_)
     targets_test,
 ) = train_test_split(rgb_features, gs_features, targets, test_size=0.2)
 
-(
-    rgb_features_test,
-    rgb_features_validation,
-    gs_features_test,
-    gs_features_validation,
-    targets_test,
-    targets_validation,
-) = train_test_split(rgb_features_test, gs_features_test, targets_test, test_size=0.5)
+gs_features_test, gs_features_validation = (
+    gs_features_test[: len(gs_features_test) // 2],
+    gs_features_test[len(gs_features_test) // 2 :],
+)
+rgb_features_test, rgb_features_validation = (
+    rgb_features_test[: len(rgb_features_test) // 2],
+    rgb_features_test[len(rgb_features_test) // 2 :],
+)
+targets_test, targets_validation = (
+    targets_test[: len(targets_test) // 2],
+    targets_test[len(targets_test) // 2 :],
+)
 
 # TODO: remove
+rgb_features_train = rgb_features_train[:800]
+rgb_features_test = rgb_features_test[:200]
 gs_features_train = gs_features_train[:800]
-targets_train = targets_train[:800]
 gs_features_test = gs_features_test[:200]
+targets_train = targets_train[:800]
 targets_test = targets_test[:200]
 
 print("Training SVM model")
@@ -250,9 +257,16 @@ def train_cnn():
     # save the best cnn model as "cnn-model.keras" since this file is gitignored
     # TODO: change, provide this function with the predicted values from the best model
     # Check train_nn functions for an example of how to determine the best model and how to save the model
+    global gs_features_train, gs_features_test, gs_features_validation
+    gs_features_train = gs_features_train.reshape((len(gs_features_train), 64, 64))
+    gs_features_test = gs_features_test.reshape((len(gs_features_test), 64, 64))
+    gs_features_validation = gs_features_validation.reshape(
+        (len(gs_features_validation), 64, 64)
+    )
     return get_and_print_metrics(targets_test)
 
 
+print("Training a CNN model")
 _, __, cnn_f1, ___ = train_cnn()
 
 print(
