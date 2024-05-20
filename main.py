@@ -4,7 +4,7 @@ import cv2
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn import svm, metrics
-from threading import Thread
+from threading import Thread, Lock
 import matplotlib.pyplot as plt
 import keras
 
@@ -15,6 +15,7 @@ dirs = [
 features = []
 target_names = []
 
+lock = Lock()
 
 def preprocess_dir(dir_name, dir_path):
     for file_name in os.listdir(dir_path):
@@ -23,8 +24,9 @@ def preprocess_dir(dir_name, dir_path):
         try:
             image = cv2.resize(image, (64, 64))
             image_normalized = image / 255.0
-            features.append(image_normalized)
-            target_names.append(dir_name)
+            with lock:
+                features.append(image_normalized)
+                target_names.append(dir_name)
 
         except:
             print(file_path + " is bad")
@@ -47,6 +49,17 @@ for dir_name in dirs:
 for thread in threads:
     thread.join()
 
+plt.figure(figsize=(10, 10))
+for i in range(25):
+    plt.subplot(5, 5, i + 1)
+    plt.xticks([])
+    plt.yticks([])
+    plt.grid(False)
+    plt.imshow(features[i], cmap=plt.cm.binary)
+    plt.xlabel(target_names[i])
+plt.show()
+
+
 features = np.array(features)
 features = np.array([image.flatten() for image in features])
 
@@ -66,10 +79,10 @@ features_test, features_validation, targets_test, targets_validation = train_tes
 )
 
 # TODO: remove
-# features_train = features_train[:800]
-# targets_train = targets_train[:800]
-# features_test = features_test[:200]
-# targets_test = targets_test[:200]
+features_train = features_train[:800]
+targets_train = targets_train[:800]
+features_test = features_test[:200]
+targets_test = targets_test[:200]
 
 print("Training SVM model")
 
